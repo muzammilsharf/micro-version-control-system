@@ -42,3 +42,67 @@ MicroVCS/
     ├── users.txt               # Serialized RBAC matrix and dashboards
     ├── repos.txt               # Serialized Trie states
     └── commits.txt             # Serialized DAG history
+
+```
+
+## Build Instructions
+This project requires a C++ compiler supporting the C++17 standard (e.g., GCC, Clang) and CMake.
+
+* **Clone the repository:**
+
+```
+git clone [https://github.com/yourusername/MicroVCS.git](https://github.com/yourusername/MicroVCS.git)
+cd MicroVCS
+```
+
+* **Build via CMake:**
+```
+mkdir build
+cd build
+cmake ..
+make
+```
+
+* **Run the engine:**
+
+```
+./MicroVCS
+```
+
+## CLI Command Reference
+Once the REPL (Read-Eval-Print Loop) is active, you can interact with the system using the following syntax:
+
+* **Authentication:**
+
+* LOGIN `<username> <password>` - Authenticate session.
+
+* LOGOUT - Terminate active session and serialize data.
+
+* **Workspace Management:**
+
+* CREATE_REPO `<name> <public|private>` - Initialize a new repository workspace.
+
+* SEARCH `<prefix>` - Query the global Trie for matching repositories.
+
+* DASHBOARD - Display personal repository metrics and user stats.
+
+* **State Tracking (Volatile):**
+
+* WRITE `<filename>` "text" - Add modifications to the active memory buffer.
+
+* UNDO - Revert the last WRITE command via the Undo Stack.
+
+* REDO - Restore an undone action via the Redo Stack.
+
+* **Version Control (Persistent):**
+
+- COMMIT "message" - Freeze volatile stacks into an immutable DAG node.
+
+- LOG - Traverse DAG pointers backward to print commit history.
+
+- CHECKOUT `<hash>` - Move the HEAD pointer to instantly restore a previous state.
+
+## Engineering Note
+Micro-VCS avoids using std::map (which runs in O(logn) due to Red-Black Trees) for authentication, favoring std::unordered_map to achieve strict O(1) lookups. The use of a Trie for the global search engine intentionally trades memory overhead (node pointers) for prefix-matching speed, as standard Hash Maps cannot perform wildcard or partial string matches efficiently.
+
+<BR> Developed for Data Structures & Algorithms, NUML Spring 2026. </BR>
