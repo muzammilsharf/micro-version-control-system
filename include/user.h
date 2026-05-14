@@ -1,1 +1,1 @@
-# RBAC and User struct definitions
+/// RBAC and User struct definitions

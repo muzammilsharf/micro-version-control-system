@@ -72,13 +72,13 @@ make
 ## CLI Command Reference
 Once the REPL (Read-Eval-Print Loop) is active, you can interact with the system using the following syntax:
 
-* **Authentication:**
+**Authentication:**
 
 * LOGIN `<username> <password>` - Authenticate session.
 
 * LOGOUT - Terminate active session and serialize data.
 
-* **Workspace Management:**
+**Workspace Management:**
 
 * CREATE_REPO `<name> <public|private>` - Initialize a new repository workspace.
 
@@ -86,7 +86,7 @@ Once the REPL (Read-Eval-Print Loop) is active, you can interact with the system
 
 * DASHBOARD - Display personal repository metrics and user stats.
 
-* **State Tracking (Volatile):**
+**State Tracking (Volatile):**
 
 * WRITE `<filename>` "text" - Add modifications to the active memory buffer.
 
@@ -94,7 +94,7 @@ Once the REPL (Read-Eval-Print Loop) is active, you can interact with the system
 
 * REDO - Restore an undone action via the Redo Stack.
 
-* **Version Control (Persistent):**
+**Version Control (Persistent):**
 
 - COMMIT "message" - Freeze volatile stacks into an immutable DAG node.
 
