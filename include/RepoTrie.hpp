@@ -75,7 +75,7 @@ private:
      * @param node Starting node for DFS traversal.
      * @param results Vector to append matching repo names to.
      */
-    void dfs_collect(TrieNode* node, std::vector<std::string>& results);
+    void dfs_collect(TrieNode* node, std::vector<std::string>& results) const;
 
 public:
     /**
@@ -125,7 +125,7 @@ public:
      *         Returns empty vector if prefix not found or no matches.
      * @throws std::invalid_argument if prefix is empty.
      */
-    std::vector<std::string> search(const std::string& prefix);
+    std::vector<std::string> search(const std::string& prefix) const;
 
     /**
      * @brief Clear all repository entries from the Trie.

@@ -20,7 +20,7 @@ void RepoTrie::destroy(TrieNode* node) {
     delete node;
 }
 
-void RepoTrie::dfs_collect(TrieNode* node, vector<string>& results) {
+void RepoTrie::dfs_collect(TrieNode* node, vector<string>& results) const {
     if (node == nullptr) {
         return;
     }
@@ -121,7 +121,7 @@ bool RepoTrie::remove(const string& repo_name) {
 // Search Method
 // ============================================================================
 
-vector<string> RepoTrie::search(const string& prefix) {
+vector<string> RepoTrie::search(const string& prefix) const {
     vector<string> results;
 
     if (prefix.empty()) {

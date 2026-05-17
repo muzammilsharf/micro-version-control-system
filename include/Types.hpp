@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <stack>
 #include <memory>
+#include "Command.hpp"
 
 enum class Role { ADMIN, USER, GUEST };
 
@@ -15,9 +16,6 @@ struct CommitNode {
     std::string parent_hash;  // "" means root commit (no parent)
     std::unordered_map<std::string, std::string> file_snapshot;  // filename -> full text content
 };
-
-// Forward declaration
-struct Command;
 
 struct Repository {
     std::string id;  // unique UUID or timestamp-counter string
