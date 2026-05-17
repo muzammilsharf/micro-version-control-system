@@ -49,10 +49,10 @@ AddLineCommand::AddLineCommand(unordered_map<string, string>& wdir,
 
 void AddLineCommand::execute() {
     // Check if file exists
-    auto it = working_directory.find(filename);
-    if (it == working_directory.end()) {
-        throw runtime_error("File '" + filename + "' does not exist in working directory.");
+    if (working_directory.find(filename) == working_directory.end()) {
+        working_directory[filename] = "";
     }
+    auto it = working_directory.find(filename);
 
     // Split file content into lines
     vector<string> lines = split_by_newline(it->second);
@@ -76,7 +76,7 @@ void AddLineCommand::undo() {
     // Get the file (should exist)
     auto it = working_directory.find(filename);
     if (it == working_directory.end()) {
-        throw runtime_error("File '" + filename + "' no longer exists.");
+        return;  // File was created by this command, so nothing to undo
     }
 
     // Split file content into lines
@@ -84,8 +84,7 @@ void AddLineCommand::undo() {
     
     // Verify that line still exists (sanity check)
     if (line_number < 1 || line_number > static_cast<int>(lines.size())) {
-        throw runtime_error("Cannot undo: line " + to_string(line_number) +
-                                " no longer exists.");
+        return;
     }
 
     // Remove the line at position (line_number - 1)

@@ -104,7 +104,7 @@ public:
      * @return Reference to the User struct.
      * @throws std::runtime_error("User not found.") if username does not exist.
      */
-    User& get_user(const std::string& username);
+    const User& get_user(const std::string& username) const;
 
     /**
      * @brief Retrieve a const reference to all registered users.

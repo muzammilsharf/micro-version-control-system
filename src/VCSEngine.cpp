@@ -254,6 +254,18 @@ void VCSEngine::commit(Repository& repo,
 void VCSEngine::checkout(Repository& repo,
                          const string& commit_hash_or_HEAD,
                          Session& caller) {
+    // Handle "HEAD" special case
+    if (commit_hash_or_HEAD == "HEAD") {
+        caller.is_detached = false;
+        if (!repo.head_commit_hash.empty()) {
+            auto head_it = repo.commit_history.find(repo.head_commit_hash);
+            if (head_it != repo.commit_history.end()) {
+                repo.working_directory = head_it->second->file_snapshot;
+            }
+        }
+        return;
+    }
+
     // Dirty state check (unless zero commits)
     if (!repo.head_commit_hash.empty()) {
         auto head_it = repo.commit_history.find(repo.head_commit_hash);
@@ -272,18 +284,6 @@ void VCSEngine::checkout(Repository& repo,
                 }
             }
         }
-    }
-
-    // Handle "HEAD" special case
-    if (commit_hash_or_HEAD == "HEAD") {
-        caller.is_detached = false;
-        if (!repo.head_commit_hash.empty()) {
-            auto head_it = repo.commit_history.find(repo.head_commit_hash);
-            if (head_it != repo.commit_history.end()) {
-                repo.working_directory = head_it->second->file_snapshot;
-            }
-        }
-        return;
     }
 
     // Lookup commit hash

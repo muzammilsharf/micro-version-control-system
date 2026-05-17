@@ -95,7 +95,7 @@ Session AuthManager::login(const string& username, const string& password) {
     return Session{username, user.role, true, false, ""};
 }
 
-User& AuthManager::get_user(const string& username) {
+const User& AuthManager::get_user(const string& username) const {
     auto it = users_map.find(username);
     if (it == users_map.end()) {
         throw runtime_error("User not found.");
