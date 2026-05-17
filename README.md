@@ -1,108 +1,161 @@
-# Micro-VCS: C++ Version Control System Engine
+# Micro-VCS — A Terminal-Based Version Control System
 
 ![C++ Standard](https://img.shields.io/badge/C%2B%2B-17-blue.svg)
 ![Build](https://img.shields.io/badge/Build-CLI-orange.svg)
 ![Status](https://img.shields.io/badge/Status-Active-success.svg)
 
-Micro-VCS is a high-performance, command-line version control backend engineered entirely in standard C++. 
+> A fully functional mini version control system built from scratch in C++17, demonstrating advanced data structure design, RBAC, persistent storage, and the Command Pattern.
 
-Rather than relying on external databases or high-level frameworks, this system explores the raw, fundamental data structures that power modern DevOps tools like Git. It implements custom memory management, cryptographic state hashing, and non-linear data serialization to manage repositories and file histories efficiently.
+---
 
-## Core Architectural Features
+## Overview
 
-* **Role-Based Access Control (RBAC):** Utilizes $O(1)$ Hash Maps (`std::unordered_map`) to enforce three strict privilege tiers: Global Admin, Authenticated User (isolated workspaces), and Guest (read-only search).
-* **Global Prefix-Tree Search:** Implements a custom **Trie** data structure to aggregate system-wide public repositories, enabling lightning-fast $O(L)$ autocomplete search capabilities.
-* **Dual-Stack State Tracking:** Uses a Command Pattern driven by `std::stack` (Undo/Redo) to manage live, volatile file modifications during active sessions without corrupting the save state.
-* **DAG-Based Time Travel:** Stores committed histories as an immutable **Directed Acyclic Graph (DAG)**. Unchanged files maintain memory pointers to previous states (preventing duplication), while altered files branch forward.
-* **Custom Object Serialization:** Features a robust file I/O engine that parses complex, pointer-based structures (Hash Maps, Trees, Graphs) into delimiter-separated `.txt` files, allowing complete RAM reconstruction upon reboot.
+Micro-VCS is a command-line application that replicates core Git-like functionality — committing snapshots, checking out history, undoing/redoing edits, and managing repositories with role-based access control. Every feature is backed by a deliberate data structure choice, not just standard library calls.
+
+Built as a Data Structures course project, the system handles multi-user sessions, atomic file persistence, detached HEAD states, and prefix-based repository search — all from scratch with no external libraries.
+
+---
+
+## Technical Highlights
+
+| Area | Implementation |
+|---|---|
+| Commit History | Singly linked list via `parent_hash` strings inside `CommitNode` |
+| O(1) Commit Lookup | `unordered_map<string, unique_ptr<CommitNode>>` per repository |
+| Repo Search | Custom hand-written Prefix Trie with tombstone deletion |
+| Undo / Redo | `stack<unique_ptr<Command>>` per repository (Command Pattern) |
+| User & Repo Index | `unordered_map` with O(1) average-time access |
+| Persistence | Pipe-delimited flat files with atomic writes via temp-file rename |
+| Memory Safety | `unique_ptr` throughout — zero raw owning pointers |
+
+---
+
+## Data Structures & Design Decisions
+
+### Commit Chain — Singly Linked List
+Each `CommitNode` stores a `parent_hash` string. Traversing history means walking this chain backward from HEAD. A parallel `unordered_map<hash, unique_ptr<CommitNode>>` provides O(1) checkout without invalidating pointers on rehash.
+
+### Custom Prefix Trie
+Built from scratch with `unordered_map<char, TrieNode*>` children. Supports O(L) insert, O(L) tombstone delete (preserves shared prefixes), and O(L+K) prefix search where K is the result count. Used exclusively for public repository discovery.
+
+### Command Pattern with Undo/Redo
+Every file edit (`add_line`, `delete_line`, `import_file`, `remove_file`) is encapsulated as a `unique_ptr<Command>` pushed onto a per-repository undo stack. Undo pops and reverses; redo re-executes. Stacks are scoped per repository, not global.
+
+### RBAC — Role-Based Access Control
+Three roles: `ADMIN > USER > GUEST`. Every command handler enforces the minimum required role. Private repository access returns the same error as "not found" — preventing enumeration attacks.
+
+---
+
+## Architecture
+
+```
+CLI (REPL)
+│
+├── AuthManager      — User registration, login, djb2 password hashing
+├── RepoManager      — Repository CRUD, owns Global_Repo_Map + RepoTrie
+├── VCSEngine        — Commits, checkout, undo/redo, detached HEAD
+└── PersistenceManager — Atomic serialization, escape handling, startup recovery
+```
+
+All business logic lives in manager classes. The CLI layer only does I/O and exception catching — no logic leaks into handlers.
+
+---
+
+## Features
+
+- **Multi-user sessions** with ADMIN / USER / GUEST roles
+- **Repository management** — create, delete, list, search by prefix
+- **File editing** — add/delete lines with full undo/redo support
+- **Import external files** with path traversal protection and 1MB size limit
+- **Commit snapshots** — full working directory captured per commit
+- **Checkout** — restore any historical commit, detached HEAD state
+- **Persistent storage** — all state survives process restarts
+- **Atomic writes** — SIGINT-safe via temp file + rename strategy
+- **Fault tolerance** — corrupted data file lines are skipped with warnings
+
+---
+
+## Build & Run
+
+**Requirements:** g++ with C++17 support
+
+```bash
+# Build
+g++ -std=c++17 -Iinclude src/*.cpp -o bin/microvcs -mconsole
+
+# Run
+bin/microvcs
+```
+
+---
+
+## Usage Example
+
+```
+> register alice pass123
+> login alice pass123
+> create_repo myproject public
+> add_line myproject main.cpp 1 "#include <iostream>"
+> add_line myproject main.cpp 2 "int main() { return 0; }"
+> status myproject
+> commit myproject "initial commit"
+> add_line myproject main.cpp 3 "// new line"
+> undo myproject
+> checkout myproject <hash>
+> view_file myproject main.cpp
+> checkout myproject HEAD
+> exit
+```
+
+---
 
 ## Project Structure
 
-```text
-MicroVCS/
-├── CMakeLists.txt              # Build configuration
-├── README.md                   # Project documentation
-│
-├── include/                    # Header files (Declarations)
-│   ├── SystemCore.h            # File Serialization (Save/Load) engine
-│   ├── User.h                  # RBAC and User struct definitions
-│   ├── Trie.h                  # Custom Prefix Tree implementation
-│   ├── HistoryTracker.h        # DAG Nodes, Hashes, and Undo/Redo Stacks
-│   └── CLI.h                   # Terminal REPL and UI logic
-│
-├── src/                        # Source files (Implementations)
-│   ├── SystemCore.cpp
-│   ├── User.cpp
-│   ├── Trie.cpp
-│   ├── HistoryTracker.cpp
+```
+micro-version-control-system/
+├── include/
+│   ├── Types.hpp             # All structs: User, Repository, CommitNode, Session
+│   ├── Command.hpp           # Abstract Command + 4 concrete commands
+│   ├── RepoTrie.hpp          # Custom Trie implementation
+│   ├── AuthManager.hpp       # Authentication + RBAC
+│   ├── RepoManager.hpp       # Repository CRUD + Trie integration
+│   ├── VCSEngine.hpp         # VCS operations
+│   ├── PersistenceManager.hpp# File I/O + serialization
+│   └── CLI.hpp               # REPL interface
+├── src/
+│   ├── Types.cpp
+│   ├── Command.cpp
+│   ├── RepoTrie.cpp
+│   ├── AuthManager.cpp
+│   ├── RepoManager.cpp
+│   ├── VCSEngine.cpp
+│   ├── PersistenceManager.cpp
 │   ├── CLI.cpp
-│   └── main.cpp                # Main system bootloader
-│
-└── data/                       # Local persistent storage
-    ├── users.txt               # Serialized RBAC matrix and dashboards
-    ├── repos.txt               # Serialized Trie states
-    └── commits.txt             # Serialized DAG history
-
+│   └── main.cpp
+├── data/                     # Auto-generated at runtime
+│   ├── users.txt
+│   ├── repos.txt
+│   └── commits.txt
+└── bin/
+    └── microvcs
 ```
 
-## Build Instructions
-This project requires a C++ compiler supporting the C++17 standard (e.g., GCC, Clang) and CMake.
+---
 
-* **Clone the repository:**
+## Tech Stack
 
-```
-git clone [https://github.com/yourusername/MicroVCS.git](https://github.com/yourusername/MicroVCS.git)
-cd MicroVCS
-```
+- **Language:** C++17
+- **Libraries:** STL only (no external dependencies)
+- **Build:** g++ / MinGW
+- **Storage:** Custom pipe-delimited flat file format with backslash escaping
 
-* **Build via CMake:**
-```
-mkdir build
-cd build
-cmake ..
-make
-```
+---
 
-* **Run the engine:**
+## What I Learned
 
-```
-./MicroVCS
-```
-
-## CLI Command Reference
-Once the REPL (Read-Eval-Print Loop) is active, you can interact with the system using the following syntax:
-
-**Authentication:**
-
-* LOGIN `<username> <password>` - Authenticate session.
-
-* LOGOUT - Terminate active session and serialize data.
-
-**Workspace Management:**
-
-* CREATE_REPO `<name> <public|private>` - Initialize a new repository workspace.
-
-* SEARCH `<prefix>` - Query the global Trie for matching repositories.
-
-* DASHBOARD - Display personal repository metrics and user stats.
-
-**State Tracking (Volatile):**
-
-* WRITE `<filename>` "text" - Add modifications to the active memory buffer.
-
-* UNDO - Revert the last WRITE command via the Undo Stack.
-
-* REDO - Restore an undone action via the Redo Stack.
-
-**Version Control (Persistent):**
-
-- COMMIT "message" - Freeze volatile stacks into an immutable DAG node.
-
-- LOG - Traverse DAG pointers backward to print commit history.
-
-- CHECKOUT `<hash>` - Move the HEAD pointer to instantly restore a previous state.
-
-## Engineering Note
-Micro-VCS avoids using std::map (which runs in O(logn) due to Red-Black Trees) for authentication, favoring std::unordered_map to achieve strict O(1) lookups. The use of a Trie for the global search engine intentionally trades memory overhead (node pointers) for prefix-matching speed, as standard Hash Maps cannot perform wildcard or partial string matches efficiently.
-
-<BR> Developed for Data Structures & Algorithms, NUML Spring 2026. </BR>
+- Designing data structures for real constraints, not just textbook examples
+- Why `unique_ptr` ownership semantics matter in complex class hierarchies
+- Iterator invalidation in `unordered_map` after insertions
+- Atomic file writes and fault-tolerant deserialization
+- Separating concerns across manager classes vs letting a god-class own everything
+- Working with AI coding agents effectively — prompting with exact types and signatures, verifying generated code against requirements, and knowing when not to trust the output
